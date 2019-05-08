@@ -1,0 +1,303 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+ <html>
+ <head>
+ </head>
+
+<a href="http://www.hoplasoftware.com" ><img src="hopla-logo-200.png" width="200" height="72" alt="Hopla logo">
+
+<body>
+<h2 align="center">
+<span style="color: rgb(0, 153, 0); font-weight: bold;">
+SBuggy - A Debugger for PostgreSQL views</span> 
+</h2>
+
+
+
+<span style="color: rgb(153,0, 0); font-weight: bold; text-decoration: underline;">Index</span> </span>
+
+
+<ol>
+<li> <a href="#about">About SBuggy</a></li>
+<li> <a href="#start">First Steps</a></li>
+<li> <a href="#buggy">Buggy Relations</a></li>
+<li> <a href="#automated">Automated debugging</a></li>
+<li> <a href="#manual">Navigated debugging</a></li>
+</ol>
+
+<hr>
+
+<h3><a name="about"><font style="color: rgb(0, 0, 153);">About SBuggy</font></a></h3>
+SBuggy is a debugger of SQL views for PostgreSQL,
+specially useful when several complex views collaborate to solve a complex query or report, 
+and the main view  produces an unexpected result.  
+In such cases, any intermediate view, or even any <i>data quality problem</i> (erroneous data
+contained in the tables) can be responsible for the erroneous result, and
+finding the particular relation (view or table) that causes the error can be particularly 
+challenging. SBuggy helps to locate the erroneous relation, saving a lot of testing and debugging time.
+It is important to state, that currently SBuggy does not find what is wrong in a view query,
+it just singles out erroneous relations.<br>
+<h3><a name="start"><font style="color: rgb(0, 0, 153);">First Steps</font></a></h3>
+
+To run SBuggy you need:
+<ul>
+<li> Java Runtime Environment 1.7.0 or higher</li>
+<li> PostgreSQL version 8.4.22 or higher
+<li> The executable sbuggy.jar containing SBuggy</li> 
+</ul>
+  
+Initially SBuggy asks for the parameters needed to connect to PostgreSQL: username, password, url
+ for the connection, and name of the database. The login form allows SSL connection.
+ The <i>Save</i> option stores the login information -excluding the password- in a configuration file
+ <i>sbuggy.conf</i>.<br><br>
+ 
+ 
+ <center>
+ <img src="login.png" width="550"  alt="Subggy, login form">
+ </center>
+ 
+ <br><br>
+ If there is any error during the connection (or if you need to connect again with different parameters)<br> 
+   the login form can be accessed from the menu at the top-right icon of the main window.<br>
+   <br>
+   After connecting, SBuggy presents the following aspect:<br><br>
+   
+ <center>
+ <img src="connected.png" width="550"  alt="Connected">
+</center>   
+    <br>
+    Two different areas can be distinguished in the SBuggy application window:
+    <ul>
+    <li> The <i>schema panel</i> at the left-hand side, lists all the schemas in the database 
+       and their relations.
+        The relations defined in a schema can be viewed clicking on its left 
+        to expand the node. For instance, after expanding the schema <i>world</i> we obtain:<br><br>
+        <center><img src="expand_world.png" width="500"  alt="Relations in schema world"></center><br>
+        SBuggy indicates that the schema contains three tables (<i>cities</i>, <i>countries</i>, 
+        <i>languages</i>)
+        and several views (<i>common_lang</i>, <i>same_name</i>, ...). <br><br>
+    </li>  
+    <li>The  <i>relation panel</i> at the right-hand side displays the contents of the relation selected in the left-hand side. For instance
+         after clicking on table cities SBuggy shows:<br><br>
+         <center><img src="cities.png" width="550"  alt=""></center>
+         <br><br>
+         indicating that <i>cities</i> contains 4079 rows. The data are displayed by pages, which can be selected 
+         in the usual way using the controls below the page.<br><br> 
+
+			<hr>
+		   <b>Important:</b> The first row in the result table is always the row number. This
+		   column is not part of the displayed relation, it is added by SBuggy.<br><br>
+		   <hr> 			         
+         <br><br>  
+		   The information displayed in the relation panel is obtained directly from PostgreSQL.
+		   It is worth observing that SBuggy is not refreshing the information all the time.
+		   For instance, if new rows are added to  <i>cities</i>, the relation panel will not notice
+		   the changes and remaing indicating that the relation contains 4079 rows. This is not very 
+		   important since we do not expect that the relations/schemas change during the testing and
+		   debugging phase. However, we can always refresh the information using the <b>Reset</b>
+		   option of the main menu:<br><br>
+		   
+		   <center><img src="reset.png" width="550"  alt=""></center>
+		      
+          <br><br>
+			Although the relation panel can be used to check all the rows in a relation,          
+         in practice only small relations will be 
+         thoroughly checked in this way. In general, instead of examining the whole relation we are interested       
+         in some particular data. In the section <a href="#manual">navigated debugging</a> we will see the 
+         order & filter features that allow the user to concentrate only on the important part of the relation.          
+			<br><br>
+		   
+		   In the case of views, the relation panel offers the possibility of checking its source code in the 
+		   tab <i>Source</i>. For instance, after selecting the view <i>same_continent</i> on the schema panel, 
+		   and the tab <i>Source</i> on the relation panel:
+		   <br><br>
+		   <center><img src="view_source.png" width="550" alt=""></center>
+		   <br><br>
+		   		   		   
+         
+     </li>
+    </ul> 
+
+<h3><a name="buggy"><font style="color: rgb(0, 0, 153);">Buggy relations</font></a></h3>
+    
+    Selecting a view in the relation in the schema panel has one more very important effect: 
+		   after being selected, the view is <i>deployed</i>. This means that it is parsed and analysed
+		   in order to detect the relations it depends on. After the deployment the view itself can
+		   be expanded, showing the relations it depends on. Some of these relations can be auxiliary
+		   views, which can be further deployed. For instance, the deployment of view 
+		   <i>same_name_diff_language</i>, which selects cities that exists with the 
+		   same name in two countries with  no common official language:
+		   
+         <br><br>
+		   <center><img src="deployment.png" width="550" alt=""></center>
+		   <br><br>
+         After the deployment, the schema panel indicates that the definition of 
+         <i>same_name_diff_language</i>, depends on two auxiliary views:
+         <ul>
+         <li><i>same_name</i> (which lists cities that exists with the same name in two countries)
+         </li>
+         <li><i>common_lang</i> (which lists pairs countries with a common official language)</li>
+         </ul>
+         In turn, <i>same_name</i> uses table <i>cities</i>, while <i>common_lang</i> depends on 
+         tables <i>languages</i> and <i>countries</i>. In this way, each view can be seen like a 
+         tree -its <i>dependency tree</i>- where the leaves are always tables. 
+		   
+		   <br><br> 
+
+			<hr>
+		   <b>Important:</b> The deployment of a view can take a few seconds.
+		   for that reason the deployment is started only when a view is selected (deploying 
+		   the whole database at the beginning will be unnecessarily costly). The deployment 
+		   of the selected view is done in the background, to avoid blocking the application.
+		   However, some options might not be available until the deployment has been completed <br><br>
+		   <hr> 			         
+         <br><br>  
+
+			If we observe carefully the relation panel for <i>same_name_diff_language</i> we 
+			find some strange, unexpected rows:
+			
+			<br><br>
+		   <center><img src="erroneousrel.png" width="550" alt="Relation with unexpected"></center>
+		   <br><br>
+		   
+		   Indeed, Argentina, Mexico share an official language (Spanish) and should not be 
+		   in this view. The same happens with Argentina and Spain and Bolivia and Mexico.
+		   We say that the view is <i>invalid</i> because it contains unexpected rows.
+		   A relation can be also invalid  is some rows are missed, or because the order 
+		   is unexpected.
+		   But an invalid relation does not mean necessarily and incorrectly defined or 
+		   <i>buggy</i>. 
+		   Indeed, it might be that <i>same_name_diff_language</i> is correctly defined,
+		   but  either <i>same_name</i> or <i>common_lang</i> is providing erroneous rows 
+		   as input.
+		   <br><br>
+		   <hr>
+		   An incorrect or <b>buggy</b> relation is an invalid relation with valid relations 
+		   as children in its dependency tree. 
+		   <hr>
+		   <br><br>
+		   
+		   Our goal, when debugging an invalid view is to find a buggy relation, which can be a 
+		   view with an erroneous definition, or a table with incorrect information (a data quality
+		   problem).
+					   
+		   
+<h3><a name="automated"><font style="color: rgb(0, 0, 153);">Automated debugging</font></a></h3>
+        Often we try to improve the efficiency of a working view A. We  have 
+        checked A and it is correct,  but
+        it is too time-consuming or resources-consuming and a new version is needed.
+           Then a new version is codified, usually more complex in order to improve 
+           the resource-consumption. It can (easily) happen that during the testing phase
+           we find that the new, more complex, version, does not work as expected.
+           Then  SBuggy proposes to use the old, working version A to debug the new version.
+           We say that the working version is a <i>trusted specification</i>.
+           In order to use a trusted specification both views must have the same name but 
+           be stored in different schemas. 
+           The automated debugging uses the relations in the dependency tree of the trusted 
+           specification to debug the relations in the dependency tree of new incorrect version. 
+           If a relation is found in both dependency trees with some common attribute names and types, 
+           the trusted version marks the new version as <i>valid</i> if both return the same 
+           rows (and every row with the same cardinality), and <i>invalid</i>.
+           This allows SBuggy to debug complex systems of views in (literally) three clicks.<br><br>
+           In the following example we use the dependency tree of view 
+           <i>old_world.same_name_diff_language_or_continent</i> as trusted specification of 
+           <i>world.same_name_diff_language_or_continent</i>;
+           <ol>
+           <li>In the schema panel, right-click on the (already deployed) trusted specification, 
+               and select <i>trusted</i>:
+           <br><br>
+		   <center><img src="trusted1.png" width="550" alt="Selecting trusted specification"></center>
+		   <br><br>
+            </li>
+           <li>Left-click (select) the view to debug, with the same name but in a different 
+                schema:
+           <br><br>
+		   <center><img src="trusted2.png" width="550" alt=""></center>
+		   <br><br>
+                </li>
+           </ol>
+             SBuggy readily points out an error in the new definition:
+           <br><br>
+		   <center><img src="trusted3.png" width="550" alt=""></center>
+		   <br><br>
+             Therefore, the view </i>world.same_name</i> is incorrect and must be codified again.
+         A detailed report about the automated debugging session can be found in the
+         <b>Log</b> tab of the relation panel. 
+             
+         It is worth observing that it can be more errors: SBuggy ensures that <i>world.same_name</i>     
+         is erroneous, but not that there is no more errors. Sometimes SBuggy founds several errors
+         in the same automated debugging session. After correcting all of them we must check 
+         the new version again in SBuggy because:
+         <ol>
+         <li>Maybe we have some error in the new, apparently corrected versions, </li>
+         <li>Maybe the new corrected versions allow SBuggy to locate a new different error</li>
+         </ol>
+         The process must be repeated until no new error is found.
+			<hr>
+		   <b>Important:</b> The comparison is done without considering the order of rows. 
+		   That is, two relations with the same rows but in different order are considered
+		   equal.<br><br>
+		   <hr> 			         
+         <br><br>
+         
+
+<h3><a name="manual"><font style="color: rgb(0, 0, 153);">Navigated debugging</font></a></h3>
+If we don't have a trusted specification, or the trusted specification does not provide information 
+enough to detect a buggy node, the user can provide more information navigating the dependency 
+tree and checking manually if the relations are valid or invalid. 
+Consider again the relation <i>same_name_diff_language</i> selects cities that exists with the 
+same name in two countries with  no common official language like Argentina (ARG) and Mexico (MEX):
+			
+			<br><br>
+		   <center><img src="erroneousrel.png" width="550" alt="Relation with unexpected"></center>
+		   <br><br>
+		   
+		   We have seen that this relation is invalid because contains countries such as Argentina and
+		   Mexico with a common official language. In the schema panel we right-click on the relation and
+		   select <i>invalid</i>:
+			<br><br>
+		   <center><img src="preinvalid.png" width="550" alt="Relation with unexpected"></center>
+		   <br><br>
+		   Then, we expand the relation and check that it depends on 
+		   <i>same_name</i> and <i>common_lang</i>. In the previous section we have already seen that 
+		   <i>same_name</i> is buggy, in this section we start examining <i>common_lang</i>:
+			<br><br>
+		   <center><img src="common_lang.png" width="550" alt="Relation with unexpected"></center>
+		   <br><br>
+		   This view contains the countries with a common language. 
+		   The pair Argentina and Mexico witnessing the error should be here. 
+		   Instead of checking all the rows we can use the <b>filter</b> option:    
+		   <br><br>
+		   <center><img src="filter1.png" width="550" alt="Relation with unexpected"></center>
+		   <br><br>
+		    With this option we can filter the relation to the row we are interested in:
+		   <br><br>
+		   <center><img src="filter2.png" width="550" alt="Relation with unexpected"></center>
+		   <br><br>
+		   The result is the empty relation:
+		   <br><br>
+		   <center><img src="filter3.png" width="550" alt="Relation with unexpected"></center>
+		   <br><br>
+		    In this case we miss the row containing the pair Argentina and Mexico, and thus we can 
+		    mark  <i>common_lang</i> as invalid:
+		    <br><br>
+		   <center><img src="invalidcommonlang.png" width="550" alt="invalid common_lang.png"></center>
+		   <br><br>
+		    Finally, <i>common_lang</i> depends on two tables. Often we assume that the data in the 
+		    tables is correct, that is that all the tables can be trusted. 
+		    Then, instead of selecting each table as valid individually, we can indicate that tables are trusted,
+		    simply selecting any table and choosing <b>trusted</b>:
+		    <br><br>
+		   <center><img src="trusttables.png" width="550" alt="trusted tables.png"></center>
+		   <br><br>
+		   After this last action SBuggy indicates that view <i>common_lang</i> is erroneous:
+		   <br><br>
+		   <center><img src="buggy2.png" width="550" alt="common_lang buggy"></center>
+		   <br><br>
+ 
+		    
+
+<br><br> 
+
+  
+</body>
+</html>
