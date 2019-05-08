@@ -1,6 +1,6 @@
 # README #
 
-SQL View Debugger for PosgreSQL
+SQL View Debugger for PosgreSQL developed for Hopla Software. See http://gpd.sip.ucm.es/rafa/hopla/sbuggy.html for an introduction
 
 ### What is this repository for? ###
 
